@@ -1,6 +1,7 @@
 .gradle
 /build/
 /generated/
+/bin/
 *.jar
 .vs
 
