@@ -43,50 +43,74 @@ There is no code generation, the language is read and interpreted by the Parser 
 ### OVERVIEW: 
 The development of the DSL was focused on the creation of resources to extract and manipulate data in the form of tables.
 For loading xml files:
+```
 LOAD "filename.xml" AS <variable-name>;
+```
 It is possible to load multiple files separating the names with ",":
+```
 LOAD "filename.xml" AS <variable-name>, "filename2.xml" AS <variable-name2>;
+```
 
 There is a number of expressions used for extracting and manipulating tables.
 All these expressions may be applied to individual tables or arrays of tables.
 
 To search for a table and assign it to a variable:
+```
 <variable-name> = TABLE <table-name>;
+```
 This expression indicates the program to search for tables with the given name in all loaded files and assign the results to the variable.
 Notice that the result may contain 0, 1 or more tables. In the first case a message will be printed in the terminal indicating that no tables were found, and the variable will not be assigned.
 In the other cases, the variable name is associated with the result, which may be a table or an array of tables.
 
 Structures are objects used to specify what rows and/or columns should exist in a table.
 The following expressions are used to define structures:
+```
 <variable-name> = STRUCTURE (<rows-names>)x(<columns-names>);
 <variable-name> = STRUCTURE ROW(<rows-names>);
 <variable-name> = STRUCTURE COL(<columns-names>);
+```
 The use of the keyword STRUCTURE is optional. The names must be separated with ",".
 The following expression fits a table in a structure:
+```
 <table-name> = FIT <table-name> INTO <structure-name>;
+```
 The following expression finds a table that has the rows and columns required by a structure and fits the table in this structure:
+```
 <variable-name> = FIND <structure-name>;
+```
 
 The expressions for finding and extracting tables in xml files may be used without specifying the files, and in this case all the loaded files will be used.
 For finding tables in specific files, use the following:
+```
 <variable-name> = TABLE <table-name> FROM <file-variable1>, <file-variable2>;
 <variable-name> = FIND <structure-name> FROM <file-variable1>, <file-variable2>;
+```
 
 The following expression is used to transpose tables:
+```
 <table-name> = TRANSPOSE <table-name>;
+```
 The following expression is used to join tables, like in SQL natural join:
+```
 <table-name3> = JOIN <table-name>, <table-name2>;
+```
 If arrays are passed as arguments to the join instruction, only the first tables of aeach array will be considered.
 The following expression is used to print tables or strings in the terminal:
+```
 PRINT <table-name>;
 PRINT <string>;
+```
 Strings must be written with double quote.
 Multiple arguments may be passed to the print function. In this case they must be separated with "<<".
 Example:
+```
 PRINT "Tables 1 and 2:" << table1 << table2;
+```
 
 The following expression is used to export tables to csv or json files:
+```
 EXPORT <variable-name> AS <file-name>;
+```
 The file name must be a string that ends with ".csv" or ".json".
 If an array of tables is passed, multiple files will be created.
 The generated files may have for example the names "filename(0).csv", "filename(1).csv", "filename(2).csv", etc.
