@@ -15,9 +15,6 @@ A REPL is executed when the Parser is called without arguments.
 It's possible to specify a file containing a set of instructions in the dsl and, optionally, pass as arguments a set of xml files to be processed by this instructions.
 
 
-### DEALING WITH SYNTACTIC ERRORS:
-Javacc deals with the syntatic errors. The Parser stops after finding the first error.
-
 ### SEMANTIC ANALYSIS:
 Specific error messages are printed in the following situations:
  - When the program tries to access a variable (table, file or structure) that does not exist.
@@ -30,17 +27,14 @@ It is possible to override variables. The parser checks the existence of variabl
 This way the same name may be used to refer to different types of variables in different parts of the program (like in javascript and python).
 
 
-###vINTERMEDIATE REPRESENTATIONS (IRs): 
+### INTERMEDIATE REPRESENTATIONS: 
 A syntax tree is used as Intermediate representation. 
 The program is read as a sequence of four basic types of expressions: Load, Assign, Print and Export. 
 Each one of these is parsed according to which types of tokens and arguments it must have.
 The class Parser has HashMaps which it uses to associate variables names to its values.
 
 
-### CODE GENERATION: 
-There is no code generation, the language is read and interpreted by the Parser without generating code.
-
-### OVERVIEW: 
+## OVERVIEW: 
 The development of the DSL was focused on the creation of resources to extract and manipulate data in the form of tables.
 For loading xml files:
 ```
