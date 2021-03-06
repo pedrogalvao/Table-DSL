@@ -1,11 +1,11 @@
 ## DSL for Extracting Data From XML Files
 
-** SUMMARY: 
+### SUMMARY:
 The DSL developed can be used to extract and transform data from xml files, specially in the form of tables
 The DSL includes expressions for loading xml files, searching for specific tables inside this files, applying transformations on this tables and exporting the result to csv or json.
 
 
-** EXECUTE:
+### EXECUTE:
 To compile use the command gradle build.
 Execute the following command to run the parser:
 java -cp "./bin/main;json-20200518.jar" Parser [<dsl-file>] [<xml-files>...]
@@ -13,10 +13,10 @@ A REPL is executed when the Parser is called without arguments.
 It's possible to specify a file containing a set of instructions in the dsl and, optionally, pass as arguments a set of xml files to be processed by this instructions.
 
 
-**DEALING WITH SYNTACTIC ERRORS: 
+### DEALING WITH SYNTACTIC ERRORS:
 Javacc deals with the syntatic errors. The Parser stops after finding the first error.
 
-**SEMANTIC ANALYSIS:
+### SEMANTIC ANALYSIS:
 Specific error messages are printed in the following situations:
  - When the program tries to access a variable (table, file or structure) that does not exist.
  - When the program tries to access a parameter (a xml file) but not enough parameters were passed to the program.
@@ -28,17 +28,17 @@ It is possible to override variables. The parser checks the existence of variabl
 This way the same name may be used to refer to different types of variables in different parts of the program (like in javascript and python).
 
 
-**INTERMEDIATE REPRESENTATIONS (IRs): 
+###vINTERMEDIATE REPRESENTATIONS (IRs): 
 A syntax tree is used as Intermediate representation. 
 The program is read as a sequence of four basic types of expressions: Load, Assign, Print and Export. 
 Each one of these is parsed according to which types of tokens and arguments it must have.
 The class Parser has HashMaps which it uses to associate variables names to its values.
 
 
-**CODE GENERATION: 
+### CODE GENERATION: 
 There is no code generation, the language is read and interpreted by the Parser without generating code.
 
-**OVERVIEW: 
+### OVERVIEW: 
 The development of the DSL was focused on the creation of resources to extract and manipulate data in the form of tables.
 For loading xml files:
 LOAD "filename.xml" AS <variable-name>;
@@ -98,12 +98,12 @@ DOM, to parse the XML files.
 JSON, to export to JSON.
 
 
-**PROS:
+### PROS:
 Simple syntax, easy to use. 
 Can process multiple files and apply operations on multiple tables with a single instruction.
 Would be easy to add new features, like exporting or loading files in other formats and adding other kinds of operations.
 
-**CONS:
+### CONS:
 The program exits after any syntax error or errors involving inexistent variables.
 
 
