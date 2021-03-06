@@ -1,0 +1,525 @@
+options
+{
+    LOOKAHEAD=1;
+}
+
+PARSER_BEGIN(Parser)
+
+import org.w3c.dom.Document;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
+import java.util.Collection;
+import java.io.InputStream;
+import org.w3c.dom.Document;
+import org.w3c.dom.NodeList;
+import org.w3c.dom.Node;
+import org.w3c.dom.Element;
+
+public class Parser
+{
+
+   public static HashMap<String,Document> loaded_files = new HashMap<String,Document>();
+   public static HashMap<String,Integer> variables = new HashMap<String,Integer>();
+   public static HashMap<String,Table> tables = new HashMap<String,Table>();
+   public static HashMap<String,ArrayList<Table>> table_arrays = new HashMap<String,ArrayList<Table>>();
+   public static HashMap<String, Structure> structures = new HashMap<String, Structure>();
+
+   public static void main(String args[]) throws ParseException {
+      
+      if (args.length==0){
+         System.out.println("Write an expression:");
+         Parser myParser = new Parser(System.in);
+         SimpleNode root = myParser.Program(); // returns reference to root node
+        // root.dump(""); // prints the tree on the screen
+      }
+      else {
+         String path = args[0];
+         try {
+               System.out.println("Parsing "+path+"...");
+               for (int i=1; i<args.length; i++){
+                  Parser.loadFile("$"+(i-1), args[i]);
+               }
+               Parser myParser = new Parser(new java.io.FileInputStream(path));
+               //System.out.println("Expression value: "+myParser.eval(root));
+               SimpleNode root = myParser.Program(); // returns reference to root node
+               /*System.out.println("" + loaded_files.size() + " files:");
+               for (String filename : loaded_files.keySet()){
+                  System.out.println("    "+filename);
+               }
+               
+               System.out.println("" + variables.size() + " variables:");
+               for (String varname : variables.keySet()){
+                  System.out.println("    "+varname+"="+variables.get(varname));
+                  
+               }*/
+               System.out.println("\n");
+              // root.dump(""); // prints the tree on the screen
+            }
+            catch (java.io.FileNotFoundException e) {
+               System.out.println ("Parser: The file " + path + " was not found.");
+            }
+      }
+   }
+
+
+   public static ArrayList<Document> getDocuments(Collection<String> names) throws FileNotLoadedException, ParameterNotFoundException {
+      ArrayList<Document> docs = new ArrayList<Document>();
+      for (String name : names){
+         if (!Parser.loaded_files.containsKey(name)) {
+            if (name.charAt(0)=='$')
+               throw new ParameterNotFoundException(name);
+            else{
+               throw new FileNotLoadedException(name);
+            }
+         }
+         else 
+            docs.add(Parser.loaded_files.get(name));
+      }
+      return docs;
+   }
+
+   public static void removeVariable(String variable) {
+      if (Parser.tables.containsKey(variable))
+         Parser.tables.remove(variable);
+      else if (Parser.table_arrays.containsKey(variable))
+         Parser.table_arrays.remove(variable);
+      else if (Parser.structures.containsKey(variable))
+         Parser.structures.remove(variable);
+      else if (Parser.loaded_files.containsKey(variable))
+         Parser.loaded_files.remove(variable);
+
+   }
+   public static void loadFile(String variable, String path){
+      removeVariable(variable);
+      path = path.replace("\"", "");
+      Parser.loaded_files.put(variable, XMLParser.load(path));
+   }
+   
+   public static void assignStructure(String variable, Structure structure){
+      removeVariable(variable);
+      Parser.structures.put(variable, structure);
+   }
+
+
+   public static void assignTables(String variable, ArrayList<Table> tables){
+      removeVariable(variable);
+      if (tables.size()==0){
+         System.out.println("No tables returned");
+      }
+      else if (tables.size()==1){
+         Parser.tables.put(variable, tables.get(0));
+      } 
+      else {
+         Parser.table_arrays.put(variable, tables);
+      }
+   }
+   public static ArrayList<Table> getTables(String name) throws TableNotFoundException {
+      ArrayList<Table> tables = new ArrayList<Table>();
+      if (Parser.tables.containsKey(name)){
+         tables.add(Parser.tables.get(name));
+         return tables;
+      }
+      else if (Parser.table_arrays.containsKey(name)){
+         for (Table table : Parser.table_arrays.get(name)){
+            tables.add(table);
+         }
+      }
+      else {
+         throw new TableNotFoundException(name);
+      }
+      return tables;
+   }
+}
+
+PARSER_END(Parser)
+
+SKIP :
+{
+	" " | "\r" | "\t" | "\n" | < "//" (~["\r", "\n"])* >
+}
+
+TOKEN:
+{
+    	< INTEGER: (["0"-"9"])+ >
+	|   < LOAD: ("LOAD"|"load") >
+	|   < FIT: ("FIT"|"fit") >
+	|   < INTO: ("INTO"|"into") >
+	|   < FIND: ("FIND"|"find") >
+	|   < PRINT: ("PRINT"|"print") >
+	|   < TRANSPOSE: ("TRANSPOSE"|"transpose") >
+	|   < JOIN: ("JOIN"|"join") >
+	|   < NUMBER: ("NUMBER"|"number") >
+	|   < ROW: ("ROW"|"row") >
+	|   < COL: ("COL"|"col") >
+	|   < COLUMN: ("COLUMN"|"column") >
+	|   < TABLE: ("TABLE"|"table") >
+	|   < STRUCT: ("STRUCTURE") >
+	|   < ARRAY: ("ARRAY"|"array") >
+	|   < EXPORT: ("EXPORT"|"export") >
+	|   < FROM: ("FROM"|"from") >
+	|   < AS: ("AS"|"as") >
+   |  <ORDER: ("("(["0"-"9"])+")")>
+   |  <VARIABLE: (("$")?(["A"-"Z"]|["a"-"z"]|["0"-"9"]|["_"])+)>
+   |  <STRING: (("\"")(~["\""])*("\""))>
+}
+
+SimpleNode Program(): {}
+{
+   (Expression() )* <EOF> {return jjtThis;}
+}
+
+SimpleNode Expression(): {}
+{
+   (LoadExpr() ";" {return jjtThis;})
+   | ( Assign()";" {return jjtThis;})
+   | ( PrintExpr()";" {return jjtThis;})
+   | ( ExportExpr()";" {return jjtThis;})
+     
+}
+
+SimpleNode AritExpr(): {}
+{
+   Expr2(1)
+   ("+" Expr2(1) #Add(2)
+   | "-" Expr2(1) #Sub(2)
+   )* {return jjtThis;}
+} 
+
+void Expr2(int sign) #void: {} // 1: positive; -1: negative, because of the ‘-‘ unitary operator
+{
+   Expr3(sign)
+   ("*" Expr3(1) #Mul(2) 
+   | "/" Expr3(1) #Div(2)
+   )*
+   
+}
+
+void Expr3(int sign) #void: {Token t;}
+{
+    t=<INTEGER> {  jjtThis.val = sign *Integer.parseInt(t.image); } #Term
+    | t=<VARIABLE> {  
+         if (Parser.variables.containsKey(t.image))
+            jjtThis.val = Parser.variables.get(t.image); 
+         /*else if (Parser.tables.contaisKey(t.image)) {
+            jjtThis.val = Parser.tables.get(t.image); 
+      }*/
+      } #Term
+    | "-" Expr3(-1)
+    | "(" AritExpr() ")"
+}
+
+void LoadExpr() #void: {Token t1, t2;}
+{
+   <LOAD> t1 = <STRING> <AS> t2=<VARIABLE> {Parser.loadFile(t2.image, t1.image);} 
+   ("," t1 = <STRING> <AS> t2=<VARIABLE> {Parser.loadFile(t2.image, t1.image);} )*
+    #LoadExpr
+}
+
+
+ArrayList<Table> ReturnTables() #void: {ArrayList<Table> tables; Token t;}{ //any expression that returns a table
+   (
+      (
+         (
+            tables=TableExpr()
+         |  tables=Transpose() 
+         |  tables=FitExpr() 
+         |  tables=Find() 
+         |  tables=Join()
+         ) { return tables; }
+      )
+      |
+      (
+         t=<VARIABLE> { 
+            try {
+               return Parser.getTables(t.image);
+            }
+            catch (TableNotFoundException e){
+               System.out.println(e.getMessage());
+            }
+         }
+      )
+   )
+}
+
+
+ArrayList<Table> TableExpr() #void: {
+   Token t; 
+   Collection<String> docs_names = Parser.loaded_files.keySet();
+   ArrayList<Document> docs;
+} 
+{
+   <TABLE> (<ORDER>)? t=<VARIABLE> 
+   (docs_names = From() )? #TableExpr
+   { 
+      try {
+         docs = Parser.getDocuments(docs_names);
+         return XMLParser.getTables(t.image, docs);
+      }
+      catch (FileNotLoadedException e) {
+         System.out.println(e.getMessage());
+      }
+      catch (ParameterNotFoundException e) {
+         System.out.println(e.getMessage());
+      }
+   }
+}
+
+/*ArrayList<ArrayList<String>> RowColumnExpr() #void: {Boolean isRow; ArrayList<String> tables=null; Token name; }
+{
+   (
+      <ROW> {isRow = true;}
+   |  <COLUMN> {isRow = false;}
+   )
+   (<ORDER>)? name=<VARIABLE> 
+   (tables=From())? {
+      if (tables==null) System.out.println("tables=null");
+      ArrayList<ArrayList<String>> results = new ArrayList<ArrayList<String>>();
+      for (String tableName:tables){
+         ArrayList<Table> table = Parser.getTables(tableName);
+         if (isRow)
+            results.add(table.getRow(name.image));
+         else
+            results.add(table.getColumn(name.image));
+      }
+      return results;
+   }#RowColumnExpr
+}*/
+
+void NumberExpr() #void: {}
+{
+   <NUMBER> <VARIABLE> From()
+}
+
+void ExportExpr() #void: {ArrayList<Table> tables; Token t2;}
+{
+   <EXPORT> tables=ReturnTables() <AS> t2=<STRING> {
+      if (tables.size() > 0){   
+         String[] splitted = t2.image.replace("\"", "").split("\\.");         
+         String format = splitted[splitted.length-1];
+         if (splitted.length==1){
+            System.out.println("ERROR : need to specify format export");
+         }
+         else {
+            if (format.equals("csv")){
+               int i=0;
+               if (tables.size()==1){
+                  tables.get(0).exportCSV(splitted[splitted.length-2]+".csv");
+               }
+               else {
+                  for (Table table : tables){
+                     table.exportCSV(splitted[splitted.length-2]+"("+i+").csv");
+                     i++;
+                  }
+               }
+            }
+            else if (format.equals("json")){
+               if (tables.size()==1){
+                  tables.get(0).exportJSON(splitted[splitted.length-2]+".json");
+               }
+               else {
+                  int i=0;
+                  for (Table table : tables){
+                     table.exportJSON(splitted[splitted.length-2]+"("+i+").csv");
+                     i++;
+                  }
+               }
+            }
+            else
+               System.out.println("ERROR : format "+format+" is not supported.");
+         }
+      }
+
+   } #ExportExpr
+}
+
+
+ArrayList<String> From(): {Token t; ArrayList<String> vars=new ArrayList<String>();} {
+   <FROM> 
+   ( 
+      t=<STRING> { 
+            vars.add(t.image);
+         }
+   |  t=<VARIABLE> { 
+            vars.add(t.image);
+         }
+   )
+   (
+      "," 
+      t=<VARIABLE> { 
+            vars.add(t.image);
+         }
+   )*
+   {return vars;}
+}
+
+void Assign(): {Token t; ArrayList<Table> tables; ArrayList<ArrayList<String>> rowcolumns; Structure structure;} {
+   
+   t=<VARIABLE> "="
+   (
+      (
+         tables=ReturnTables() { Parser.assignTables(t.image, tables); }
+      )
+      |  
+      (
+         structure = StructureExpr() { if (structure != null) Parser.assignStructure(t.image, structure); }
+      )
+   )
+
+}
+
+ArrayList<Table> Transpose():{ArrayList<Table> tables, results=new ArrayList<Table>();} {
+   <TRANSPOSE> 
+   (
+      
+      tables=ReturnTables()
+      {
+         if (tables.size()==0){
+            System.out.println("No tables returned");
+            return results;
+         }
+         for (Table table : tables){
+            results.add(table.transpose());
+         }
+         return results;
+      }
+   )
+}
+
+Structure StructureExpr():{Structure structure = new Structure(); Token t;  } {
+   (<STRUCT>)?
+   (
+      (
+         "(" (( t=<VARIABLE> {  structure.addRow(t.image);   })
+         (","t=<VARIABLE> {   structure.addRow(t.image);   })* )?
+         ")" "x("
+         (( t=<VARIABLE> {  structure.addColumn(t.image);   })
+         (","t=<VARIABLE> {   structure.addColumn(t.image);   })*)? ")"
+      )
+      |
+      (
+         <COL> "(" 
+         (  
+            ( t=<VARIABLE> {  structure.addColumn(t.image);   })
+            (","t=<VARIABLE> {   structure.addColumn(t.image);   })* 
+            ")"
+         )
+      )
+      |
+      (
+         <ROW> "(" 
+         (
+            ( t=<VARIABLE> {  structure.addRow(t.image);   })
+            (","t=<VARIABLE> {   structure.addRow(t.image);   })* 
+            ")"
+         )
+      )
+   )
+   {
+      if (structure.getColumnNames().size()==0 && structure.getRowsNames().size()==0) {
+         System.out.println("ERROR: Structures must have at least one row or column");
+         return null;
+      }
+      return structure;
+   }
+      
+}
+
+ArrayList<Table> FitExpr():{Structure structure; Token t=null, t2; ArrayList<Table> tables = new ArrayList<Table>(), results=new ArrayList<Table>();}{
+   <FIT> tables=ReturnTables() <INTO> 
+   (
+      structure=StructureExpr() {
+         if (tables.size() > 0) {
+            for (Table table : tables){
+               results.add(table.fitInto(structure));
+            }
+         }
+         else {
+            System.out.println("No tables to fit");
+         }
+         return results;
+      }
+   |  t2=<VARIABLE> {
+         if (Parser.structures.containsKey(t2.image)){
+            structure=Parser.structures.get(t2.image);
+            if (tables.size()==0){
+               System.out.println("No tables to fit");
+               return results;
+            }
+            for (Table table : tables){
+               results.add(table.fitInto(structure));
+            }
+            return results;
+         }
+         else {
+            System.out.println("ERROR: Structure "+t.image+" does not exist");
+            return results;
+         }
+
+      }
+   )
+}
+
+
+void PrintExpr() : {}{
+   <PRINT> 
+   ( 
+      (PrintArg())
+      ("<<" PrintArg())*
+   )
+}
+
+void PrintArg():{Token t; ArrayList<Table> tables;}{
+   (
+      (
+         t=<STRING> {
+            System.out.println(t.image.replace("\"",""));
+         }
+      ) 
+      |
+      (
+         tables=ReturnTables() { for (Table table : tables) table.print(); }
+      )
+   )
+}
+
+ArrayList<Table> Find() : { Token t; Structure structure=null; Collection<String> docs_names = Parser.loaded_files.keySet(); ArrayList<Document> docs; } {
+   <FIND> 
+   (
+      structure = StructureExpr()
+      | (t=<VARIABLE> { 
+                        if (Parser.structures.containsKey(t.image))
+                           structure=Parser.structures.get(t.image); 
+                        else {
+                           System.out.println("ERROR: Structure " + t.image + " does not exist");
+                           return null;
+                        }
+                     })
+   )
+   (docs_names = From() )? 
+   { 
+      try {
+         docs = Parser.getDocuments(docs_names);
+         return XMLParser.getTables(structure, docs);
+      }
+      catch (FileNotLoadedException e) {
+         System.out.println(e.getMessage());
+      }
+      catch (ParameterNotFoundException e) {
+         System.out.println(e.getMessage());
+      }
+   }
+
+}
+
+ArrayList<Table> Join() : { ArrayList<Table> table1, table2;} {
+   <JOIN> table1=ReturnTables() "," table2=ReturnTables()
+   { 
+      ArrayList<Table> result = new ArrayList<Table>();
+      result.add(table1.get(0).join(table2.get(0)));
+      return result;
+   }
+}
