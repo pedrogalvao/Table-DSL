@@ -1,7 +1,7 @@
 ## DSL for Extracting Data From XML Files
 
 ### SUMMARY:
-The DSL developed can be used to extract and transform data from xml files, specially in the form of tables
+The DSL developed can be used to extract and transform data from xml files, specially in the form of tables.
 The DSL includes expressions for loading xml files, searching for specific tables inside this files, applying transformations on this tables and exporting the result to csv or json.
 
 Simple syntax, easy to use. Can process multiple files and apply operations on multiple tables with a single instruction.
