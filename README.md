@@ -4,6 +4,9 @@
 The DSL developed can be used to extract and transform data from xml files, specially in the form of tables
 The DSL includes expressions for loading xml files, searching for specific tables inside this files, applying transformations on this tables and exporting the result to csv or json.
 
+Simple syntax, easy to use. Can process multiple files and apply operations on multiple tables with a single instruction.
+Would be easy to add new features, like exporting or loading files in other formats and adding other kinds of operations.
+
 
 ### EXECUTE:
 To compile use the command gradle build.
@@ -13,18 +16,6 @@ java -cp "./bin/main;json-20200518.jar" Parser [<dsl-file>] [<xml-files>...]
 ```
 A REPL is executed when the Parser is called without arguments.
 It's possible to specify a file containing a set of instructions in the dsl and, optionally, pass as arguments a set of xml files to be processed by this instructions.
-
-
-### SEMANTIC ANALYSIS:
-Specific error messages are printed in the following situations:
- - When the program tries to access a variable (table, file or structure) that does not exist.
- - When the program tries to access a parameter (a xml file) but not enough parameters were passed to the program.
- - When the program tries to specify a structure without names for columns or rows.
- - When in an export expression the format of the file to export is not specified or not supported (the file name must end in .csv or .json).
-In the first two cases the error will cause the program to stop, because there will be values missing to calculate the result of the expression.
-In the other two cases the instruction is simply not executed. 
-It is possible to override variables. The parser checks the existence of variables with same names and removes one of them if necessary.
-This way the same name may be used to refer to different types of variables in different parts of the program (like in javascript and python).
 
 
 ### INTERMEDIATE REPRESENTATIONS: 
@@ -118,13 +109,14 @@ DOM, to parse the XML files.
 JSON, to export to JSON.
 
 
-### PROS:
-Simple syntax, easy to use. 
-Can process multiple files and apply operations on multiple tables with a single instruction.
-Would be easy to add new features, like exporting or loading files in other formats and adding other kinds of operations.
-
-### CONS:
-The program exits after any syntax error or errors involving inexistent variables.
-
-
+### SEMANTIC ANALYSIS:
+Specific error messages are printed in the following situations:
+ - When the program tries to access a variable (table, file or structure) that does not exist.
+ - When the program tries to access a parameter (a xml file) but not enough parameters were passed to the program.
+ - When the program tries to specify a structure without names for columns or rows.
+ - When in an export expression the format of the file to export is not specified or not supported (the file name must end in .csv or .json).
+In the first two cases the error will cause the program to stop, because there will be values missing to calculate the result of the expression.
+In the other two cases the instruction is simply not executed. 
+It is possible to override variables. The parser checks the existence of variables with same names and removes one of them if necessary.
+This way the same name may be used to refer to different types of variables in different parts of the program (like in javascript and python).
 
