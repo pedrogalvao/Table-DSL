@@ -8,7 +8,9 @@ The DSL includes expressions for loading xml files, searching for specific table
 ### EXECUTE:
 To compile use the command gradle build.
 Execute the following command to run the parser:
+```
 java -cp "./bin/main;json-20200518.jar" Parser [<dsl-file>] [<xml-files>...]
+```
 A REPL is executed when the Parser is called without arguments.
 It's possible to specify a file containing a set of instructions in the dsl and, optionally, pass as arguments a set of xml files to be processed by this instructions.
 
